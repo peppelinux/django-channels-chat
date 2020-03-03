@@ -1,8 +1,8 @@
 from django.contrib.admin import ModelAdmin, site
-from core.models import MessageModel
+from .models import ChatMessageModel
 
 
-class MessageModelAdmin(ModelAdmin):
+class ChatMessageModelAdmin(ModelAdmin):
     readonly_fields = ('timestamp',)
     search_fields = ('id', 'body', 'user__username', 'recipient__username')
     list_display = ('id', 'user', 'recipient', 'timestamp', 'characters')
@@ -11,4 +11,4 @@ class MessageModelAdmin(ModelAdmin):
     date_hierarchy = 'timestamp'
 
 
-site.register(MessageModel, MessageModelAdmin)
+site.register(ChatMessageModel, ChatMessageModelAdmin)

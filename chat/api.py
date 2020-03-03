@@ -1,14 +1,15 @@
+from django.conf import settings
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.authentication import SessionAuthentication
 
-from chat import settings
-from core.serializers import MessageModelSerializer, UserModelSerializer
-from core.models import MessageModel
+
+from .serializers import ChatMessageModelSerializer, UserModelSerializer
+from .models import ChatMessageModel
 
 
 class CsrfExemptSessionAuthentication(SessionAuthentication):
@@ -22,19 +23,19 @@ class CsrfExemptSessionAuthentication(SessionAuthentication):
         return
 
 
-class MessagePagination(PageNumberPagination):
+class ChatMessagePagination(PageNumberPagination):
     """
     Limit message prefetch to one page.
     """
     page_size = settings.MESSAGES_TO_LOAD
 
 
-class MessageModelViewSet(ModelViewSet):
-    queryset = MessageModel.objects.all()
-    serializer_class = MessageModelSerializer
+class ChatMessageModelViewSet(ModelViewSet):
+    queryset = ChatMessageModel.objects.all()
+    serializer_class = ChatMessageModelSerializer
     allowed_methods = ('GET', 'POST', 'HEAD', 'OPTIONS')
     authentication_classes = (CsrfExemptSessionAuthentication,)
-    pagination_class = MessagePagination
+    pagination_class = ChatMessagePagination
 
     def list(self, request, *args, **kwargs):
         self.queryset = self.queryset.filter(Q(recipient=request.user) |
@@ -44,7 +45,7 @@ class MessageModelViewSet(ModelViewSet):
             self.queryset = self.queryset.filter(
                 Q(recipient=request.user, user__username=target) |
                 Q(recipient__username=target, user=request.user))
-        return super(MessageModelViewSet, self).list(request, *args, **kwargs)
+        return super(ChatMessageModelViewSet, self).list(request, *args, **kwargs)
 
     def retrieve(self, request, *args, **kwargs):
         msg = get_object_or_404(
@@ -56,12 +57,12 @@ class MessageModelViewSet(ModelViewSet):
 
 
 class UserModelViewSet(ModelViewSet):
-    queryset = User.objects.all()
+    queryset = get_user_model().objects.all()
     serializer_class = UserModelSerializer
     allowed_methods = ('GET', 'HEAD', 'OPTIONS')
     pagination_class = None  # Get all user
 
     def list(self, request, *args, **kwargs):
         # Get all users except yourself
-        self.queryset = self.queryset.exclude(id=request.user.id)
+        self.queryset = self.queryset.exclude(id = request.user.id)
         return super(UserModelViewSet, self).list(request, *args, **kwargs)

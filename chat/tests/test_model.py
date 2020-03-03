@@ -1,7 +1,6 @@
 from django.db import IntegrityError
 from django.test import TestCase
-from core.models import MessageModel
-from django.contrib.auth.models import User
+from chat.models import ChatMessageModel
 
 
 class MessageTestCase(TestCase):

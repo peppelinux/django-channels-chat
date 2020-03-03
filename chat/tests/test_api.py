@@ -1,4 +1,4 @@
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -6,13 +6,15 @@ from rest_framework.test import APITestCase
 
 class MessageApiTestCase(APITestCase):
     def setUp(self):
-        self.test_user1 = User.objects.create(username='u1')
+        self.test_user1 = get_user_model().objects.create(username='u1')
         self.test_user1.set_password('u1')
         self.test_user1.save()
-        self.test_user2 = User.objects.create(username='u2', password='u2')
+        self.test_user2 = get_user_model().objects.create(username='u2',
+                                                          password='u2')
         self.test_user2.set_password('u2')
         self.test_user2.save()
-        self.test_user3 = User.objects.create(username='u3', password='u3')
+        self.test_user3 = get_user_model().objects.create(username='u3',
+                                                          password='u3')
         self.test_user3.set_password('u3')
         self.test_user3.save()
 
@@ -53,7 +55,8 @@ class MessageApiTestCase(APITestCase):
         # Change to another user (not in conversation)
         self.login_user3()
         response = self.client.get(url, format='json')
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.status_code,
+                         status.HTTP_404_NOT_FOUND)
         self.logout()
 
     def login_user1(self):
@@ -66,7 +69,8 @@ class MessageApiTestCase(APITestCase):
         self.login('u3', 'u3')
 
     def login(self, username, password):
-        self.assertTrue(self.client.login(username=username, password=password))
+        self.assertTrue(self.client.login(username=username,
+                                          password=password))
 
     def logout(self):
         self.client.logout()

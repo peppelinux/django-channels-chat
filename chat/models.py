@@ -1,4 +1,6 @@
-from django.contrib.auth.models import User
+import logging
+
+from django.contrib.auth import get_user_model
 from django.db.models import (Model,
                               TextField,
                               DateTimeField,
@@ -9,17 +11,23 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 
 
-class MessageModel(Model):
+logger = logging.getLogger(__name__)
+
+
+class ChatMessageModel(Model):
     """
     This class represents a chat message. It has a owner (user), timestamp and
     the message body.
 
     """
-    user = ForeignKey(User, on_delete=CASCADE, verbose_name='user',
+    user = ForeignKey(get_user_model(), on_delete=CASCADE,
+                      verbose_name='user',
                       related_name='from_user', db_index=True)
-    recipient = ForeignKey(User, on_delete=CASCADE, verbose_name='recipient',
+    recipient = ForeignKey(get_user_model(), on_delete=CASCADE,
+                           verbose_name='recipient',
                            related_name='to_user', db_index=True)
-    timestamp = DateTimeField('timestamp', auto_now_add=True, editable=False,
+    timestamp = DateTimeField('timestamp', auto_now_add=True,
+                              editable=False,
                               db_index=True)
     body = TextField('body')
 
@@ -43,8 +51,8 @@ class MessageModel(Model):
         }
 
         channel_layer = get_channel_layer()
-        print("user.id {}".format(self.user.id))
-        print("user.id {}".format(self.recipient.id))
+        logger.debug("user.id {}".format(self.user.id))
+        logger.debug("user.id {}".format(self.recipient.id))
 
         async_to_sync(channel_layer.group_send)("{}".format(self.user.id), notification)
         async_to_sync(channel_layer.group_send)("{}".format(self.recipient.id), notification)
@@ -56,13 +64,13 @@ class MessageModel(Model):
         """
         new = self.id
         self.body = self.body.strip()  # Trimming whitespaces from the body
-        super(MessageModel, self).save(*args, **kwargs)
+        super(ChatMessageModel, self).save(*args, **kwargs)
         if new is None:
             self.notify_ws_clients()
 
     # Meta
     class Meta:
-        app_label = 'core'
+        app_label = 'chat'
         verbose_name = 'message'
         verbose_name_plural = 'messages'
         ordering = ('-timestamp',)

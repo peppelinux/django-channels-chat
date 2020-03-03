@@ -42,3 +42,5 @@ nosetests.xml
 
 env/
 db.sqlite3
+
+Pipfile.lock

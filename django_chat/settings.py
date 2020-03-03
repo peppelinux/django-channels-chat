@@ -22,7 +22,7 @@ PROJECT_ROOT = BASE_DIR
 # See https://docs.djangoproject.com/en/dev/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'ABC1234' #TODO Changeme
+SECRET_KEY = 'ABC1123123123234' #TODO Changeme
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -38,7 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # Apps
-    'core',
+    'chat',
 
     # 3rd party
     'rest_framework',
@@ -55,7 +55,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'chat.urls'
+ROOT_URLCONF = 'django_chat.urls'
 
 TEMPLATES = [
     {
@@ -73,7 +73,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'chat.wsgi.application'
+WSGI_APPLICATION = 'django_chat.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/dev/ref/settings/#databases
@@ -136,7 +136,7 @@ MESSAGES_TO_LOAD = 15
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "asgiref.inmemory.ChannelLayer",
-        "ROUTING": "core.routing.channel_routing",
+        "ROUTING": "django_chat.routing.channel_routing",
     },
 }
 # Could be changed to the config below to scale:
@@ -180,11 +180,11 @@ ALLOWED_HOSTS = ['*']
 
 # Import local_settings.py
 try:
-    from local_settings import *
+    from settingslocal import *
 except ImportError:
     pass
 
-ASGI_APPLICATION = 'chat.routing.application'
+ASGI_APPLICATION = 'django_chat.routing.application'
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
