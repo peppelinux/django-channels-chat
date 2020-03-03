@@ -16,7 +16,6 @@ import os
 from os.path import join
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PROJECT_ROOT = BASE_DIR
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/dev/howto/deployment/checklist/
@@ -159,15 +158,15 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/dev/howto/static-files/
 
 # Collect static files here
-STATIC_ROOT = join(PROJECT_ROOT, 'run', 'static_root')
+STATIC_ROOT = join(BASE_DIR, 'data', 'static')
 
 # Collect media files here
-MEDIA_ROOT = join(PROJECT_ROOT, 'run', 'media_root')
+MEDIA_ROOT = join(BASE_DIR, 'data', 'media')
 MEDIA_URL = '/media/'
 
 # look for static assets here
 STATICFILES_DIRS = [
-    join(PROJECT_ROOT, 'static'),
+    join(BASE_DIR, 'static'),
 ]
 
 STATIC_URL = '/static/'
