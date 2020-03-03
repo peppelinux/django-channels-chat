@@ -30,7 +30,7 @@ class ChatMessageModel(Model):
     created = DateTimeField(auto_now_add=True,
                             editable=False,
                             db_index=True)
-    read_date = DateTimeField(editable=False)
+    read_date = DateTimeField(editable=False, null=True, blank=True)
     room = CharField(max_length=150, null=True, blank=True)
     body = TextField('body')
 
