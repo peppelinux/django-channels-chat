@@ -57,8 +57,10 @@ class ChatMessageModel(Model):
         logger.debug("user.id {}".format(self.user.id))
         logger.debug("user.id {}".format(self.recipient.id))
 
-        async_to_sync(channel_layer.group_send)("{}".format(self.user.id), notification)
-        async_to_sync(channel_layer.group_send)("{}".format(self.recipient.id), notification)
+        async_to_sync(channel_layer.group_send)("{}".format(self.user.pk),
+                                                notification)
+        async_to_sync(channel_layer.group_send)("{}".format(self.recipient.pk),
+                                                notification)
 
     def save(self, *args, **kwargs):
         """
