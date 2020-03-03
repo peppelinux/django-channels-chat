@@ -22,7 +22,7 @@ class ChatMessageModelSerializer(ModelSerializer):
 
     class Meta:
         model = ChatMessageModel
-        fields = ('id', 'user', 'recipient', 'timestamp', 'body')
+        fields = ('id', 'user', 'recipient', 'created', 'body')
 
 
 class UserModelSerializer(ModelSerializer):

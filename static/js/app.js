@@ -4,6 +4,7 @@ let chatButton = $('#btn-send');
 let userList = $('#user-list');
 let messageList = $('#messages');
 
+
 function updateUserList() {
     $.getJSON('api/v1/user/', function (data) {
         userList.children('.user').remove();
@@ -22,7 +23,7 @@ function updateUserList() {
 
 function drawMessage(message) {
     let position = 'left';
-    const date = new Date(message.timestamp);
+    const date = new Date(message.created);
     if (message.user === currentUser) position = 'right';
     const messageItem = `
             <li class="message ${position}">
@@ -110,6 +111,3 @@ $(document).ready(function () {
         getMessageById(e.data);
     };
 });
-
-
-

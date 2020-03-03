@@ -2,6 +2,7 @@ import logging
 
 from django.contrib.auth import get_user_model
 from django.db.models import (Model,
+                              CharField,
                               TextField,
                               DateTimeField,
                               ForeignKey,
@@ -26,9 +27,11 @@ class ChatMessageModel(Model):
     recipient = ForeignKey(get_user_model(), on_delete=CASCADE,
                            verbose_name='recipient',
                            related_name='to_user', db_index=True)
-    timestamp = DateTimeField('timestamp', auto_now_add=True,
-                              editable=False,
-                              db_index=True)
+    created = DateTimeField(auto_now_add=True,
+                            editable=False,
+                            db_index=True)
+    read_date = DateTimeField(editable=False)
+    room = CharField(max_length=150, null=True, blank=True)
     body = TextField('body')
 
     def __str__(self):
@@ -73,4 +76,4 @@ class ChatMessageModel(Model):
         app_label = 'chat'
         verbose_name = 'message'
         verbose_name_plural = 'messages'
-        ordering = ('-timestamp',)
+        ordering = ('-created',)
