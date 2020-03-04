@@ -1,5 +1,7 @@
 # ChatApp  #
 
+This is an independent fork of: https://github.com/narrowfail/django-channels-chat
+
 ![](http://g.recordit.co/JYruQDLd0h.gif)
 
 A small functional person-to-person message center application built using Django.
