@@ -30,12 +30,8 @@ function addUserDiv(user, bold=false) {
     // add delete click event
     $(userList).children('.item').last().children('.item_delete').first().on("click",
         function () {
-            if ($(event.target).parent().children('.user').first().hasClass("active")) {
-                currentRecipient = null;
-                disableInput();
-            }
-            users.splice(users.indexOf($(event.target).parent().children('.user').first().text()), 1);
-            $(event.target).parent().remove();
+            let user_to_remove = $(event.target).parent().children('.user').first().text();
+            removeUserFromList(user_to_remove);
         }
     );
 }
