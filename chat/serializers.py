@@ -11,18 +11,23 @@ class ChatMessageModelSerializer(ModelSerializer):
 
     def create(self, validated_data):
         user = self.context['request'].user
-        recipient = get_object_or_404(
-            get_user_model(),
-            username=validated_data['recipient']['username'])
+        room = self.validated_data['room']
+        broadcast = self.validated_data['broadcast']
+
+        recipient = get_object_or_404(get_user_model(),
+                                      username=validated_data['recipient']['username'])
+
         msg = ChatMessageModel(recipient=recipient,
+                               room=room,
                                body=validated_data['body'],
-                               user=user)
+                               user=user,
+                               broadcast=broadcast)
         msg.save()
         return msg
 
     class Meta:
         model = ChatMessageModel
-        fields = ('id', 'user', 'recipient', 'created', 'body')
+        fields = ('id', 'user', 'recipient', 'room', 'created', 'body', 'broadcast')
 
 
 class UserModelSerializer(ModelSerializer):

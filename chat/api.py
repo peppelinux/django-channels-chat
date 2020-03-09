@@ -41,17 +41,30 @@ class ChatMessageModelViewSet(ModelViewSet):
         self.queryset = self.queryset.filter(Q(recipient=request.user) |
                                              Q(user=request.user))
         target = self.request.query_params.get('target', None)
-        if target is not None:
+        room_name = self.request.query_params.get('room', None)
+        broadcast = self.request.query_params.get('broadcast', False)
+
+        if room_name:
+            self.queryset = self.queryset.filter(room=room_name)
+        if target and target==request.user.username:
+            self.queryset = self.queryset.filter(user=request.user,
+                                                 broadcast=True)
+        elif target:
             self.queryset = self.queryset.filter(
                 Q(recipient=request.user, user__username=target) |
                 Q(recipient__username=target, user=request.user))
+
         return super(ChatMessageModelViewSet, self).list(request, *args, **kwargs)
 
     def retrieve(self, request, *args, **kwargs):
-        msg = get_object_or_404(
-            self.queryset.filter(Q(recipient=request.user) |
-                                 Q(user=request.user),
-                                 Q(pk=kwargs['pk'])))
+        room = self.request.query_params.get('room')
+        msg = self.queryset.get(Q(recipient=request.user) | Q(user=request.user),
+                                pk=kwargs['pk'], room=room, )
+        # if not msg.broadcast and msg.recipient!=request.user and msg.user!=request.user:
+            # return None
+
+        # msg = self.queryset.get(Q(recipient=request.user) | Q(user=request.user),
+                                # Q(pk=kwargs['pk']))
         serializer = self.get_serializer(msg)
         return Response(serializer.data)
 
@@ -65,4 +78,5 @@ class UserModelViewSet(ModelViewSet):
     def list(self, request, *args, **kwargs):
         # Get all users except yourself
         self.queryset = self.queryset.exclude(id = request.user.id)
+        print(request)
         return super(UserModelViewSet, self).list(request, *args, **kwargs)

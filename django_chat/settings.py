@@ -129,7 +129,7 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 100
 }
 
-MESSAGES_TO_LOAD = 15
+MESSAGES_TO_LOAD = 1500
 
 # In settings.py
 CHANNEL_LAYERS = {
@@ -191,4 +191,42 @@ CHANNEL_LAYERS = {
             "hosts": [('127.0.0.1', 6379)],
         },
     },
+}
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse'
+        }
+    },
+    'handlers': {
+        'mail_admins': {
+            'level': 'ERROR',
+            'filters': ['require_debug_false'],
+            'class': 'django.utils.log.AdminEmailHandler'
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['mail_admins'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+        'djangosaml2': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+        'chat': {
+            'handlers': ['console',],
+            'propagate': True,
+            'level': 'DEBUG',
+        },
+    }
 }
