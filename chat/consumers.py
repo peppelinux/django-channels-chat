@@ -51,7 +51,8 @@ class ChatConsumer(WebsocketConsumer):
             'type': 'join_room',
             'room': self.room_name,
             'user': self.user.username,
-            'operator': chat_operator(self.user)
+            'user_fullname': '{} {}'.format(self.user.first_name,
+                                            self.user.last_name)
         }
         logger.info("connect notification: {}".format(notification))
         async_to_sync(self.channel_layer.group_send)(
@@ -66,7 +67,8 @@ class ChatConsumer(WebsocketConsumer):
                     'type': 'add_user',
                     'room': self.room_name,
                     'user': au.user.username,
-                    'operator': chat_operator(au.user)
+                    'user_fullname': '{} {}'.format(au.user.first_name,
+                                                    au.user.last_name)
                 }
                 async_to_sync(self.channel_layer.send)(
                     self.channel_name,
@@ -84,7 +86,9 @@ class ChatConsumer(WebsocketConsumer):
         notification = {
             'type': 'leave_room',
             'room': self.room_name,
-            'user': self.user.username
+            'user': self.user.username,
+            'user_fullname': '{} {}'.format(self.user.first_name,
+                                            self.user.last_name)
         }
         async_to_sync(self.channel_layer.group_send)(
             self.group_name,
@@ -100,22 +104,14 @@ class ChatConsumer(WebsocketConsumer):
     # Join a room
     def join_room(self, event):
         user = get_user_model().objects.filter(username=event['user']).first()
-        if chat_operator(self.user):
+        if chat_operator(self.user) or (user and event['user'] != self.user.username and chat_operator(user)):
             self.send(
                 text_data=json.dumps({
                     'command': 'join_room',
                     'room': event['room'],
                     'user': event['user'],
-                    'operator': event['operator']
-                })
-            )
-        elif user and event['user'] != self.user.username and chat_operator(user):
-            self.send(
-                text_data=json.dumps({
-                    'command': 'join_room',
-                    'room': event['room'],
-                    'user': event['user'],
-                    'operator': event['operator']
+                    'user_fullname': '{} {}'.format(user.first_name,
+                                                    user.last_name)
                 })
             )
 
@@ -125,7 +121,7 @@ class ChatConsumer(WebsocketConsumer):
             text_data=json.dumps({
                 'command': 'leave_room',
                 'room': event['room'],
-                'user': event['user']
+                'user': event['user'],
             })
         )
 
@@ -136,17 +132,19 @@ class ChatConsumer(WebsocketConsumer):
                 'command': 'add_user',
                 'room': event['room'],
                 'user': event['user'],
-                'operator': event['operator']
+                'user_fullname': event['user_fullname'],
             })
         )
 
     # Receive one-to-one message from WebSocket
     def receive(self, event):
         message = event['message']
+        user_fullname = event['user_fullname']
         logger.info(message)
         self.send(
             text_data=json.dumps({
-                'message': message
+                'message': message,
+                'user_fullname': user_fullname
             })
         )
 
@@ -154,9 +152,11 @@ class ChatConsumer(WebsocketConsumer):
     def receive_group_message(self, event):
         # broadcast only for staff users
         message = event['message']
+        user_fullname = event['user_fullname']
         # Send message to WebSocket
         self.send(
             text_data=json.dumps({
                 'message': message,
+                'user_fullname': user_fullname
             })
         )

@@ -55,6 +55,8 @@ class ChatMessageModel(Model):
         notification = {
             'type': 'receive',
             'message': '{}'.format(self.id),
+            'user_fullname': '{} {}'.format(self.user.first_name,
+                                            self.user.last_name)
         }
         print("notify single client")
         channel_layer = get_channel_layer()
@@ -68,7 +70,9 @@ class ChatMessageModel(Model):
         """
         notification = {
             'type': 'receive_group_message',
-            'message': '{}'.format(self.id)
+            'message': '{}'.format(self.id),
+            'user_fullname': '{} {}'.format(self.user.first_name,
+                                            self.user.last_name)
         }
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)("chat_{}".format(self.room),

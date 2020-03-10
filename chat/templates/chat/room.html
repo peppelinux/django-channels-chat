@@ -52,6 +52,7 @@
         let room_name = '{{ room_name }}'
         let sessionKey = '{{ request.session.session_key }}';
         let currentUser = '{{ request.user.username }}';
+        let currentUser_name = '{{ request.user.first_name }} {{ request.user.last_name }}';
     </script>
     <script src="{% static 'js/app.js' %}"></script>
 
