@@ -60,11 +60,6 @@ class ChatMessageModelViewSet(ModelViewSet):
         room = self.request.query_params.get('room')
         msg = self.queryset.get(Q(recipient=request.user) | Q(user=request.user),
                                 pk=kwargs['pk'], room=room, )
-        # if not msg.broadcast and msg.recipient!=request.user and msg.user!=request.user:
-            # return None
-
-        # msg = self.queryset.get(Q(recipient=request.user) | Q(user=request.user),
-                                # Q(pk=kwargs['pk']))
         serializer = self.get_serializer(msg)
         return Response(serializer.data)
 
@@ -78,5 +73,4 @@ class UserModelViewSet(ModelViewSet):
     def list(self, request, *args, **kwargs):
         # Get all users except yourself
         self.queryset = self.queryset.exclude(id = request.user.id)
-        print(request)
         return super(UserModelViewSet, self).list(request, *args, **kwargs)

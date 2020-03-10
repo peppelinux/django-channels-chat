@@ -2,10 +2,35 @@ let currentRecipient = '';
 let currentRecipient_fullname = '';
 let chatInput = $('#chat-input');
 let chatButton = $('#btn-send');
+let videoChatButton = $('#btn-videochat');
 let userList = $('#user-list');
 let messageList = $('#messages');
 let users = [];
 
+
+function uuid4(){
+    var uuid = '', ii;
+    for (ii = 0; ii < 32; ii += 1) {
+        switch (ii) {
+            case 8:
+            case 20:
+                uuid += '-';
+                uuid += (Math.random() * 16 | 0).toString(16);
+                break;
+            case 12:
+                uuid += '-';
+                uuid += '4';
+                break;
+            case 16:
+                uuid += '-';
+                uuid += (Math.random() * 4 | 8).toString(16);
+                break;
+            default:
+                uuid += (Math.random() * 16 | 0).toString(16);
+        }
+    }
+    return uuid;
+}
 
 function addUserDiv(user, user_fullname, bold=false) {
     // build HTML user element in list
@@ -196,16 +221,17 @@ function setCurrentRecipient(username, full_name, room_name) {
 function enableInput() {
     chatInput.prop('disabled', false);
     chatButton.prop('disabled', false);
+    if (currentRecipient!=currentUser) videoChatButton.prop('disabled', false);
     chatInput.focus();
 }
 
 function disableInput() {
     chatInput.prop('disabled', true);
     chatButton.prop('disabled', true);
+    videoChatButton.prop('disabled', true);
 }
 
 $(document).ready(function () {
-    //updateUserList(room_name);
     disableInput();
     var socket = new WebSocket(
         'ws://' + window.location.host +
@@ -233,6 +259,14 @@ $(document).ready(function () {
             }
             chatInput.val('');
         }
+    });
+
+    videoChatButton.click(function () {
+        videochat_url="https://meet.jit.si/"+room_name+"-"+uuid4();
+        window.open(videochat_url, '_blank');
+        sendMessage(recipient=currentRecipient,
+                    room_name=room_name,
+                    body=videochat_url);
     });
 
     socket.onmessage = function (e) {

@@ -58,9 +58,9 @@ class ChatMessageModel(Model):
             'user_fullname': '{} {}'.format(self.user.first_name,
                                             self.user.last_name)
         }
-        print("notify single client")
         channel_layer = get_channel_layer()
-        uc = UserChannel.objects.filter(user__username=recipient).first()
+        uc = UserChannel.objects.filter(user__username=recipient.username,
+                                        room=self.room).first()
         if uc and uc.channel:
             async_to_sync(channel_layer.send)(uc.channel, notification)
 
