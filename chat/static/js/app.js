@@ -7,9 +7,9 @@ let users = [];
 
 
 function addUserDiv(user, bold=false) {
-    // build HTML user element
+    // build HTML user element in list
     let userItem = `<div class="item">
-                        <a class="list-group-item user"`;
+                        <a user="${user}" class="list-group-item user"`;
     if (bold) userItem += ` style="font-weight: bold;"`;
     userItem += `>${user}</a>`;
     if (currentUser != user)
@@ -21,9 +21,10 @@ function addUserDiv(user, bold=false) {
     // add click event
     $(userList).children('.item').last().children('.user').first().on("click",
         function () {
+            let target = $(event.target)
             userList.children('.item').children('.active').removeClass('active');
-            $(event.target).addClass('active');
-            setCurrentRecipient($(event.target).text(), room_name);
+            target.addClass('active');
+            setCurrentRecipient(target.text(), room_name);
         }
     );
 
@@ -36,15 +37,24 @@ function addUserDiv(user, bold=false) {
     );
 }
 
-function drawMessage(message) {
-    let position = 'left';
-    const date = new Date(message.created);
-    if (message.user === currentUser) position = 'right';
+function drawMessage(message, from_bot=false) {
+   if (from_bot) {
+        var date = new Date();
+        var position = 'left';
+        var avatar = 'BOT';
+        var msg_body = message;
+    } else {
+        var position = 'left';
+        var date = new Date(message.created);
+        if (message.user === currentUser) position = 'right';
+        var avatar = message.user;
+        var msg_body = message.body;
+    }
     const messageItem = `
             <li class="message ${position}">
-                <div class="avatar">${message.user}</div>
+                <div class="avatar">${avatar}</div>
                     <div class="text_wrapper">
-                        <div class="text">${message.body}<br>
+                        <div class="text">${msg_body}<br>
                             <span class="small">${date}</span>
                     </div>
                 </div>
@@ -65,28 +75,43 @@ function getConversation(recipient, room_name) {
 
 function addUserInList(by_user, operator=false, bold=false) {
     console.log("addUserInList: " + by_user);
+    console.log("currentrecipient: "+ currentRecipient);
     let founded = false
     userList.children('.item').each(function( index ) {
         let visible_name = $(this).children().first().text();
+        console.log(visible_name);
         if (visible_name == by_user) {
             founded = true;
             return false;
         }
     });
+
     if (!founded) {
         addUserDiv(by_user, bold);
         if (by_user != currentUser) users.push(by_user);
+        if (by_user == currentRecipient) {
+            drawMessage("L'utente è rientrato nella chat", true);
+            messageList.animate({scrollTop: messageList.prop('scrollHeight')});
+            enableInput();
+            $( "a.user:contains('"+ by_user +"')" ).addClass( "active" );
+        }
+    } else if (by_user != currentRecipient) {
+        $( "a.user:contains('"+ by_user +"')" ).css( "font-weight", "bold" );
     }
 }
 
 function removeUserFromList(user) {
     console.log("removeUserFromList:" + user);
-    $("a:contains("+ user +")").addClass('active').parent().remove();
+    $("a:contains("+ user +")").parent().remove();
     console.log(users);
     users.splice(user, 1);
     // if currentRecipient leaves the room, you can't write anymore
-    if (user=currentRecipient) disableInput();
-    currentRecipient = null;
+    if (user == currentRecipient){
+        drawMessage("L'utente ha abbandonato la chat", true);
+        messageList.animate({scrollTop: messageList.prop('scrollHeight')});
+        disableInput();
+    }
+    //currentRecipient = null;
     console.log(users);
 }
 
@@ -99,19 +124,19 @@ function getMessageById(message, room_name) {
         $.getJSON(`/api/v1/message/${id}/?room=${room_name}`, function (data) {
             if (data.user === currentRecipient ||
                 (data.recipient === currentRecipient && data.user == currentUser)) {
+                    enableInput();
+                    $("a:contains("+ currentRecipient +")").addClass('active');
                     drawMessage(data);
                     messageList.animate({scrollTop: messageList.prop('scrollHeight')});
             }
             else {
                 $( "a.user:contains('"+ data.user +"')" ).css( "font-weight", "bold" );
             }
-            //if(data.user != currentUser) addUserInList(data.user);
         });
     }
     // a message from a user that isn't present in list
     else {
         $.getJSON(`/api/v1/message/${id}/?room=${room_name}`, function (data) {
-            $( "a.user:contains('"+ data.user +"')" ).css( "font-weight", "bold" );
             if(data.user != currentUser)
                 addUserInList(data.user, false, true);
         });
@@ -152,8 +177,8 @@ $(document).ready(function () {
     disableInput();
     var socket = new WebSocket(
         'ws://' + window.location.host +
-        //'/ws/chat/' + room_name + '/?session_key=${sessionKey}')
-        '/ws/chat/' + room_name + '/')
+        '/ws/chat/' + room_name + '/?session_key=${sessionKey}')
+        //'/ws/chat/' + room_name + '/')
 
     chatInput.keypress(function (e) {
         if (e.keyCode == 13)
