@@ -1,162 +1,126 @@
-from django.contrib.auth import get_user_model
-from asgiref.sync import async_to_sync
-from channels.generic.websocket import WebsocketConsumer
-import json
 import logging
 
-from . models import UserChannel
-from . utils import chat_operator
+from django.contrib.auth import get_user_model
+from django.db.models import (Model,
+                              CharField,
+                              BooleanField,
+                              TextField,
+                              DateTimeField,
+                              ForeignKey,
+                              CASCADE)
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from . utils import chat_operator
 
 logger = logging.getLogger(__name__)
 
 
-class ChatConsumer(WebsocketConsumer):
+class ChatMessageModel(Model):
+    """
+    This class represents a chat message. It has a owner (user), timestamp and
+    the message body.
 
-    def _create_user_channel(self, user, channel_name, room):
-        # purge old user channels in room
-        UserChannel.objects.filter(user=user, room=self.room_name).delete()
-        # create new
-        UserChannel.objects.create(user=user,
-                                   channel=self.channel_name,
-                                   room=self.room_name)
+    """
+    user = ForeignKey(get_user_model(), on_delete=CASCADE,
+                      verbose_name='user',
+                      related_name='from_user', db_index=True)
+    recipient = ForeignKey(get_user_model(), on_delete=CASCADE,
+                           verbose_name='recipient',
+                           related_name='to_user', db_index=True,
+                           null=True, blank=True)
+    created = DateTimeField(auto_now_add=True,
+                            editable=False,
+                            db_index=True)
+    read_date = DateTimeField(editable=False, null=True, blank=True)
+    room = CharField(max_length=150, null=True, blank=True)
+    body = TextField('body')
+    broadcast = BooleanField(default=False)
 
-    def connect(self):
-        user_id = self.scope["session"]["_auth_user_id"]
+    def __str__(self):
+        return str(self.id)
 
-        # only for logged users
-        if not user_id:
-            self.close()
+    def characters(self):
+        """
+        Toy function to count body characters.
+        :return: body's char number
+        """
+        return len(self.body)
 
-        self.user = get_user_model().objects.get(pk=user_id)
-
-        # self.group_name = "{}".format(user_id)
-        self.room_name = self.scope['url_route']['kwargs']['room_name']
-        self.group_name = 'chat_{}'.format(self.room_name)
-
-        # Join room group
-        async_to_sync(self.channel_layer.group_add)(
-            self.group_name,
-            self.channel_name
-        )
-
-        self._create_user_channel(user=self.user,
-                                  channel_name=self.channel_name,
-                                  room=self.room_name)
-        logger.info("{} connected to websocket".format(self.user))
-        self.accept()
-
-        # Send message to room group
+    def notify_single_client(self, recipient):
+        """
+        Inform client there is a new message.
+        """
+        # import pdb; pdb.set_trace()
         notification = {
-            'type': 'join_room',
-            'room': self.room_name,
-            'user': self.user.username,
+            'type': 'receive',
+            'message': '{}'.format(self.id),
             'user_fullname': '{} {}'.format(self.user.first_name,
                                             self.user.last_name)
         }
-        logger.info("connect notification: {}".format(notification))
-        async_to_sync(self.channel_layer.group_send)(
-            self.group_name,
-            notification
-        )
+        channel_layer = get_channel_layer()
+        uc = UserChannel.objects.filter(user__username=recipient.username,
+                                        room=self.room).first()
+        if uc and uc.channel:
+            async_to_sync(channel_layer.send)(uc.channel, notification)
 
-        active_users = UserChannel.objects.filter(room=self.room_name).exclude(user=self.user)
-        for au in active_users:
-            if(chat_operator(self.user)) or (chat_operator(au.user)):
-                notification = {
-                    'type': 'add_user',
-                    'room': self.room_name,
-                    'user': au.user.username,
-                    'user_fullname': '{} {}'.format(au.user.first_name,
-                                                    au.user.last_name)
-                }
-                async_to_sync(self.channel_layer.send)(
-                    self.channel_name,
-                    notification
-                )
-
-    def disconnect(self, close_code):
-        logger.info("disconnected from websocket")
-        UserChannel.objects.filter(channel=self.channel_name,
-                                   room=self.room_name).delete()
-        user_id = self.scope["session"]["_auth_user_id"]
-        user = get_user_model().objects.get(pk=user_id)
-
-        # Send message to room group
+    def notify_ws_clients(self):
+        """
+        Inform client there is a new message.
+        """
         notification = {
-            'type': 'leave_room',
-            'room': self.room_name,
-            'user': self.user.username,
+            'type': 'receive_group_message',
+            'message': '{}'.format(self.id),
             'user_fullname': '{} {}'.format(self.user.first_name,
                                             self.user.last_name)
         }
-        async_to_sync(self.channel_layer.group_send)(
-            self.group_name,
-            notification
-        )
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)("chat_{}".format(self.room),
+                                                notification)
 
-        # Leave room group
-        async_to_sync(self.channel_layer.group_discard)(
-            self.group_name,
-            self.channel_name
-        )
-
-    # Join a room
-    def join_room(self, event):
-        user = get_user_model().objects.filter(username=event['user']).first()
-        if chat_operator(self.user) or (user and event['user'] != self.user.username and chat_operator(user)):
-            self.send(
-                text_data=json.dumps({
-                    'command': 'join_room',
-                    'room': event['room'],
-                    'user': event['user'],
-                    'user_fullname': '{} {}'.format(user.first_name,
-                                                    user.last_name)
-                })
-            )
-
-    # Leave a room
-    def leave_room(self, event):
-        self.send(
-            text_data=json.dumps({
-                'command': 'leave_room',
-                'room': event['room'],
-                'user': event['user'],
-            })
-        )
-
-    # Add user to room
-    def add_user(self, event):
-        self.send(
-            text_data=json.dumps({
-                'command': 'add_user',
-                'room': event['room'],
-                'user': event['user'],
-                'user_fullname': event['user_fullname'],
-            })
-        )
-
-    # Receive one-to-one message from WebSocket
-    def receive(self, event):
-        message = event['message']
-        user_fullname = event['user_fullname']
-        logger.info(message)
-        self.send(
-            text_data=json.dumps({
-                'message': message,
-                'user_fullname': user_fullname
-            })
-        )
-
-    # Receive message in room
-    def receive_group_message(self, event):
+    def save(self, *args, **kwargs):
+        """
+        Trims white spaces, saves the message and notifies the recipient via WS
+        if the message is new.
+        """
         # broadcast only for staff users
-        message = event['message']
-        user_fullname = event['user_fullname']
-        # Send message to WebSocket
-        self.send(
-            text_data=json.dumps({
-                'message': message,
-                'user_fullname': user_fullname
-            })
-        )
+        if self.broadcast and not chat_operator(self.user):
+            return False
+        new = self.id
+        self.body = self.body.strip()  # Trimming whitespaces from the body
+        super(ChatMessageModel, self).save(*args, **kwargs)
+        if not new:
+            if self.broadcast: self.notify_ws_clients()
+            else:
+                # notify recipient
+                self.notify_single_client(recipient=self.recipient)
+                # notify sender
+                self.notify_single_client(recipient=self.user)
+
+    # Meta
+    class Meta:
+        app_label = 'chat'
+        verbose_name = 'message'
+        verbose_name_plural = 'messages'
+        ordering = ('-created',)
+
+
+class UserChannel(Model):
+    """
+    This class represents a chat message. It has a owner (user), timestamp and
+    the message body.
+
+    """
+    user = ForeignKey(get_user_model(), on_delete=CASCADE,
+                      verbose_name='user', db_index=True)
+    channel = CharField(max_length=150)
+    room = CharField(max_length=150, null=True, blank=True)
+    created = DateTimeField(auto_now_add=True,
+                            editable=False,
+                            db_index=True)
+
+    # Meta
+    class Meta:
+        verbose_name = 'Canale Utente'
+        verbose_name_plural = 'Canale Utenti'
+        ordering = ('-created',)
