@@ -37,7 +37,7 @@ function addUserDiv(user, user_fullname, bold=false) {
     let userItem = `<div class="item">
                         <a user="${user}" class="list-group-item user"`;
     if (bold) userItem += ` style="font-weight: bold;"`;
-    if (user == currentUser) userItem += `><b>Room Broadcast Channel</b></a>`;
+    if (user == currentUser) userItem += `>Room Broadcast Channel</a>`;
     else userItem += `>${user_fullname}</a>`;
     if (currentUser != user)
         userItem += `<span class="item_delete">[close]</span>`;
